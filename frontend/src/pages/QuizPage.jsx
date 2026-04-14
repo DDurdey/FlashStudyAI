@@ -1,31 +1,60 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import BadgePill from '../components/BadgePill'
-
-const MOCK_CARDS = [
-  { id: 1, question: 'What is the difference between TCP and UDP?', answer: 'TCP is connection-oriented and guarantees delivery with error checking. UDP is connectionless, faster, but has no delivery guarantee.', difficulty: 'Medium' },
-  { id: 2, question: 'Define Big-O notation.', answer: 'A mathematical notation that describes the upper bound of an algorithm\'s time or space complexity as input size grows.', difficulty: 'Easy' },
-  { id: 3, question: 'What is a race condition?', answer: 'A race condition occurs when two or more threads access shared data concurrently and the outcome depends on the order of execution.', difficulty: 'Hard' },
-  { id: 4, question: 'What does REST stand for?', answer: 'Representational State Transfer — an architectural style for distributed hypermedia systems.', difficulty: 'Easy' },
-  { id: 5, question: 'Explain the CAP theorem.', answer: 'A distributed system can only guarantee two of three properties: Consistency, Availability, and Partition tolerance.', difficulty: 'Hard' },
-]
+import { getDeck } from '../lib/api'
 
 export default function QuizPage() {
+  const { id } = useParams()
   const [index, setIndex] = useState(0)
   const [input, setInput] = useState('')
   const [revealed, setRevealed] = useState(false)
   const [score, setScore] = useState({ correct: 0, incorrect: 0 })
   const [done, setDone] = useState(false)
+  const [deck, setDeck] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const navigate = useNavigate()
 
-  const card = MOCK_CARDS[index]
-  const progress = ((index) / MOCK_CARDS.length) * 100
+  useEffect(() => {
+    let alive = true
+
+    async function loadDeck() {
+      if (!id) {
+        setError('Missing deck id.')
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        setError('')
+        const deckData = await getDeck(id)
+        if (!alive) return
+        setDeck(deckData)
+      } catch (err) {
+        if (!alive) return
+        setError(err instanceof Error ? err.message : 'Failed to load quiz deck.')
+      } finally {
+        if (alive) setLoading(false)
+      }
+    }
+
+    loadDeck()
+
+    return () => {
+      alive = false
+    }
+  }, [id])
+
+  const cards = deck?.flashcards ?? []
+  const card = cards[index]
+  const progress = cards.length ? (index / cards.length) * 100 : 0
 
   const handleReveal = () => setRevealed(true)
 
   const handleNext = (correct) => {
     setScore(s => ({ ...s, [correct ? 'correct' : 'incorrect']: s[correct ? 'correct' : 'incorrect'] + 1 }))
-    if (index + 1 >= MOCK_CARDS.length) {
+    if (index + 1 >= cards.length) {
       setDone(true)
     } else {
       setIndex(i => i + 1)
@@ -35,7 +64,7 @@ export default function QuizPage() {
   }
 
   if (done) {
-    const total = MOCK_CARDS.length
+    const total = cards.length
     const pct = Math.round((score.correct / total) * 100)
     return (
       <div className="fade-up" style={{ maxWidth: '480px', margin: '0 auto', paddingTop: '60px', textAlign: 'center' }}>
@@ -54,7 +83,7 @@ export default function QuizPage() {
           <StatBox label="Score" value={`${pct}%`} color="var(--accent)" />
         </div>
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-          <button onClick={() => navigate('/deck/mock-123')} style={btnStyle('outline')}>
+          <button onClick={() => navigate(`/deck/${id}`)} style={btnStyle('outline')}>
             Back to deck
           </button>
           <button onClick={() => { setIndex(0); setInput(''); setRevealed(false); setScore({ correct: 0, incorrect: 0 }); setDone(false) }} style={btnStyle('accent')}>
@@ -68,10 +97,37 @@ export default function QuizPage() {
   return (
     <div className="fade-up" style={{ maxWidth: '560px', margin: '0 auto', paddingTop: '32px' }}>
 
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '40px 0' }}>
+          <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: '28px', letterSpacing: '-0.03em', marginBottom: '10px' }}>
+            Loading quiz
+          </h1>
+          <p style={{ color: 'var(--text-muted)' }}>Fetching the deck from the backend...</p>
+        </div>
+      ) : error ? (
+        <div style={{ textAlign: 'center', padding: '40px 0' }}>
+          <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: '28px', letterSpacing: '-0.03em', marginBottom: '10px' }}>
+            Could not load quiz
+          </h1>
+          <p style={{ color: 'var(--hard)', marginBottom: '20px' }}>{error}</p>
+          <button onClick={() => navigate('/')} style={btnStyle('outline')}>
+            Back to upload
+          </button>
+        </div>
+      ) : !cards.length ? (
+        <div style={{ textAlign: 'center', padding: '40px 0' }}>
+          <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: '28px', letterSpacing: '-0.03em', marginBottom: '10px' }}>
+            No cards available
+          </h1>
+          <p style={{ color: 'var(--text-muted)' }}>Generate a deck first.</p>
+        </div>
+      ) : (
+        <>
+
       {/* Progress bar */}
       <div style={{ marginBottom: '32px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>
-          <span>{index + 1} / {MOCK_CARDS.length}</span>
+          <span>{index + 1} / {cards.length}</span>
           <span>{score.correct} correct</span>
         </div>
         <div style={{ height: '3px', background: 'var(--border)', borderRadius: '999px' }}>
@@ -90,6 +146,9 @@ export default function QuizPage() {
         <div style={{ marginBottom: '20px' }}>
           <BadgePill difficulty={card.difficulty} />
         </div>
+        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          {card.topic}
+        </p>
         <p style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '18px', lineHeight: 1.4, letterSpacing: '-0.01em' }}>
           {card.question}
         </p>
@@ -152,6 +211,9 @@ export default function QuizPage() {
               ✓ Correct
             </button>
           </div>
+        </>
+      )}
+
         </>
       )}
 
