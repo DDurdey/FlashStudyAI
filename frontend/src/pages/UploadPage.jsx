@@ -1,0 +1,138 @@
+import { useState, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
+
+export default function UploadPage() {
+  const [dragging, setDragging] = useState(false)
+  const [file, setFile] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const inputRef = useRef()
+  const navigate = useNavigate()
+
+  const handleFile = (f) => {
+    if (!f) return
+    const allowed = ['application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain']
+    if (!allowed.includes(f.type)) {
+      alert('Please upload a PDF, DOCX, or TXT file.')
+      return
+    }
+    setFile(f)
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    setDragging(false)
+    handleFile(e.dataTransfer.files[0])
+  }
+
+  const handleGenerate = async () => {
+    if (!file) return
+    setLoading(true)
+    // TODO: replace with real API call in Phase 2
+    await new Promise(r => setTimeout(r, 1800))
+    setLoading(false)
+    navigate('/deck/mock-123')
+  }
+
+  return (
+    <div className="fade-up" style={{ maxWidth: '600px', margin: '0 auto', paddingTop: '40px' }}>
+
+      <h1 style={{
+        fontFamily: 'Syne, sans-serif',
+        fontWeight: 800,
+        fontSize: '36px',
+        letterSpacing: '-0.03em',
+        lineHeight: 1.1,
+        marginBottom: '10px',
+      }}>
+        Upload your notes.<br />
+        <span style={{ color: 'var(--accent)' }}>Get flashcards.</span>
+      </h1>
+
+      <p style={{ color: 'var(--text-muted)', marginBottom: '40px', fontSize: '14px' }}>
+        Supports PDF, DOCX, and plain text. Cards ready in under 15 seconds.
+      </p>
+
+      {/* Drop Zone */}
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={handleDrop}
+        onClick={() => inputRef.current.click()}
+        style={{
+          border: `1.5px dashed ${dragging ? 'var(--accent)' : file ? '#2d4a1e' : 'var(--border-hi)'}`,
+          borderRadius: 'var(--radius)',
+          background: dragging ? '#111a09' : file ? '#0c160a' : 'var(--bg-card)',
+          padding: '56px 32px',
+          textAlign: 'center',
+          cursor: 'pointer',
+          transition: 'all 0.2s',
+          marginBottom: '20px',
+        }}
+      >
+        <input
+          ref={inputRef}
+          type="file"
+          accept=".pdf,.docx,.txt"
+          style={{ display: 'none' }}
+          onChange={e => handleFile(e.target.files[0])}
+        />
+
+        {file ? (
+          <>
+            <div style={{
+              width: '40px', height: '40px', borderRadius: '8px',
+              background: '#1a3d12', border: '1px solid #2d5a1e',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 14px', fontSize: '20px',
+            }}>📄</div>
+            <p style={{ fontWeight: 500, color: 'var(--text)', marginBottom: '4px' }}>{file.name}</p>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+              {(file.size / 1024).toFixed(1)} KB · click to replace
+            </p>
+          </>
+        ) : (
+          <>
+            <div style={{
+              width: '40px', height: '40px', borderRadius: '8px',
+              background: 'var(--border)', display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 14px', fontSize: '20px',
+            }}>↑</div>
+            <p style={{ fontWeight: 500, marginBottom: '4px' }}>
+              {dragging ? 'Drop it here' : 'Drag & drop your file'}
+            </p>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+              or click to browse · PDF, DOCX, TXT
+            </p>
+          </>
+        )}
+      </div>
+
+      {/* Generate Button */}
+      <button
+        onClick={handleGenerate}
+        disabled={!file || loading}
+        style={{
+          width: '100%',
+          padding: '14px',
+          borderRadius: 'var(--radius)',
+          border: 'none',
+          background: file ? 'var(--accent)' : 'var(--border)',
+          color: file ? 'var(--bg)' : 'var(--text-muted)',
+          fontFamily: 'Syne, sans-serif',
+          fontWeight: 700,
+          fontSize: '15px',
+          letterSpacing: '-0.01em',
+          cursor: file ? 'pointer' : 'not-allowed',
+          transition: 'all 0.2s',
+          opacity: loading ? 0.7 : 1,
+        }}
+      >
+        {loading ? 'Generating flashcards...' : 'Generate flashcards →'}
+      </button>
+
+    </div>
+  )
+}

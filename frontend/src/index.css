@@ -1,1 +1,106 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
 @import "tailwindcss";
+
+:root {
+  --bg:        #090909;
+  --bg-card:   #111111;
+  --bg-hover:  #181818;
+  --border:    #232323;
+  --border-hi: #333333;
+  --text:      #f0f0f0;
+  --text-muted:#666666;
+  --accent:    #d4ff47;
+  --accent-dim:#a8cc38;
+  --easy:      #22c55e;
+  --medium:    #f59e0b;
+  --hard:      #ef4444;
+  --radius:    12px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, #root {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content {
+  flex: 1;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+}
+
+/* scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 3px; }
+
+/* flip card 3D */
+.flip-card {
+  perspective: 1200px;
+  cursor: pointer;
+}
+
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+}
+
+.flip-card.flipped .flip-card-inner {
+  transform: rotateY(180deg);
+}
+
+.flip-card-front,
+.flip-card-back {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 28px 24px;
+  text-align: center;
+  transition: border-color 0.2s;
+}
+
+.flip-card:hover .flip-card-front,
+.flip-card:hover .flip-card-back {
+  border-color: var(--border-hi);
+}
+
+.flip-card-back {
+  transform: rotateY(180deg);
+  background: #131613;
+  border-color: #1e2a1a;
+}
+
+/* page fade-in */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.fade-up {
+  animation: fadeUp 0.4s ease both;
+}
