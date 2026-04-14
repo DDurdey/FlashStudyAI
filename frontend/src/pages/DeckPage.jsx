@@ -1,41 +1,33 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import FlashCard from '../components/FlashCard'
-
-const MOCK_CARDS = [
-  { id: 1, question: 'What is the difference between TCP and UDP?', answer: 'TCP is connection-oriented and guarantees delivery with error checking. UDP is connectionless, faster, but has no delivery guarantee.', difficulty: 'Medium' },
-  { id: 2, question: 'Define Big-O notation.', answer: 'A mathematical notation that describes the upper bound of an algorithm\'s time or space complexity as input size grows.', difficulty: 'Easy' },
-  { id: 3, question: 'What is a race condition?', answer: 'A race condition occurs when two or more threads access shared data concurrently and the outcome depends on the order of execution.', difficulty: 'Hard' },
-  { id: 4, question: 'What does REST stand for?', answer: 'Representational State Transfer — an architectural style for distributed hypermedia systems.', difficulty: 'Easy' },
-  { id: 5, question: 'Explain the CAP theorem.', answer: 'A distributed system can only guarantee two of three properties: Consistency, Availability, and Partition tolerance.', difficulty: 'Hard' },
-  { id: 6, question: 'What is memoization?', answer: 'An optimization technique that caches the results of expensive function calls so they aren\'t recomputed for the same inputs.', difficulty: 'Medium' },
-]
 
 const FILTERS = ['All', 'Easy', 'Medium', 'Hard']
 
 export default function DeckPage() {
+  const { id } = useParams()
   const [filter, setFilter] = useState('All')
   const navigate = useNavigate()
+  const decks = JSON.parse(localStorage.getItem('flashstudy-decks') || '[]')
+  const deck = decks.find(d => d.id === id) || null
+
+  if (!deck) return (
+    <div style={{ textAlign: 'center', paddingTop: '80px', color: 'var(--text-muted)' }}>
+      <p style={{ marginBottom: '16px' }}>Deck not found.</p>
+      <button onClick={() => navigate('/')} style={backBtnStyle}>← back to upload</button>
+    </div>
+  )
 
   const filtered = filter === 'All'
-    ? MOCK_CARDS
-    : MOCK_CARDS.filter(c => c.difficulty === filter)
+    ? deck.cards
+    : deck.cards.filter(c => c.difficulty === filter)
 
   return (
     <div className="fade-up">
 
       {/* Header */}
       <div style={{ marginBottom: '32px' }}>
-        <button
-          onClick={() => navigate('/')}
-          style={{
-            background: 'none', border: 'none', color: 'var(--text-muted)',
-            cursor: 'pointer', fontSize: '13px', padding: '0 0 16px',
-            display: 'flex', alignItems: 'center', gap: '6px',
-          }}
-        >
-          ← back
-        </button>
+        <button onClick={() => navigate('/')} style={backBtnStyle}>← back</button>
 
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
           <div>
@@ -46,15 +38,15 @@ export default function DeckPage() {
               letterSpacing: '-0.03em',
               marginBottom: '4px',
             }}>
-              Your deck
+              {deck.name}
             </h1>
             <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
-              {MOCK_CARDS.length} cards · click any card to reveal the answer
+              {deck.cards.length} cards · click any card to reveal the answer
             </p>
           </div>
 
           <button
-            onClick={() => navigate('/quiz/mock-123')}
+            onClick={() => navigate(`/quiz/${id}`)}
             style={{
               padding: '10px 20px',
               borderRadius: '8px',
@@ -76,7 +68,7 @@ export default function DeckPage() {
       </div>
 
       {/* Filter pills */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '28px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '28px', flexWrap: 'wrap', alignItems: 'center' }}>
         {FILTERS.map(f => (
           <button
             key={f}
@@ -96,7 +88,7 @@ export default function DeckPage() {
             {f}
           </button>
         ))}
-        <span style={{ marginLeft: 'auto', fontSize: '13px', color: 'var(--text-muted)', alignSelf: 'center' }}>
+        <span style={{ marginLeft: 'auto', fontSize: '13px', color: 'var(--text-muted)' }}>
           {filtered.length} card{filtered.length !== 1 ? 's' : ''}
         </span>
       </div>
@@ -114,4 +106,16 @@ export default function DeckPage() {
 
     </div>
   )
+}
+
+const backBtnStyle = {
+  background: 'none',
+  border: 'none',
+  color: 'var(--text-muted)',
+  cursor: 'pointer',
+  fontSize: '13px',
+  padding: '0 0 16px',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '6px',
 }

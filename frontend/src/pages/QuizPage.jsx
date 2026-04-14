@@ -1,31 +1,34 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState,  } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import BadgePill from '../components/BadgePill'
 
-const MOCK_CARDS = [
-  { id: 1, question: 'What is the difference between TCP and UDP?', answer: 'TCP is connection-oriented and guarantees delivery with error checking. UDP is connectionless, faster, but has no delivery guarantee.', difficulty: 'Medium' },
-  { id: 2, question: 'Define Big-O notation.', answer: 'A mathematical notation that describes the upper bound of an algorithm\'s time or space complexity as input size grows.', difficulty: 'Easy' },
-  { id: 3, question: 'What is a race condition?', answer: 'A race condition occurs when two or more threads access shared data concurrently and the outcome depends on the order of execution.', difficulty: 'Hard' },
-  { id: 4, question: 'What does REST stand for?', answer: 'Representational State Transfer — an architectural style for distributed hypermedia systems.', difficulty: 'Easy' },
-  { id: 5, question: 'Explain the CAP theorem.', answer: 'A distributed system can only guarantee two of three properties: Consistency, Availability, and Partition tolerance.', difficulty: 'Hard' },
-]
-
 export default function QuizPage() {
+  const { id } = useParams()
   const [index, setIndex] = useState(0)
   const [input, setInput] = useState('')
   const [revealed, setRevealed] = useState(false)
   const [score, setScore] = useState({ correct: 0, incorrect: 0 })
   const [done, setDone] = useState(false)
   const navigate = useNavigate()
+  const decks = JSON.parse(localStorage.getItem('flashstudy-decks') || '[]')
+  const deck = decks.find(d => d.id === id) || null
 
-  const card = MOCK_CARDS[index]
-  const progress = ((index) / MOCK_CARDS.length) * 100
+  if (!deck) return (
+    <div style={{ textAlign: 'center', paddingTop: '80px', color: 'var(--text-muted)' }}>
+      <p style={{ marginBottom: '16px' }}>Deck not found.</p>
+      <button onClick={() => navigate('/')} style={ghostBtn}>← back to upload</button>
+    </div>
+  )
+
+  const cards = deck.cards
+  const card = cards[index]
+  const progress = (index / cards.length) * 100
 
   const handleReveal = () => setRevealed(true)
 
   const handleNext = (correct) => {
     setScore(s => ({ ...s, [correct ? 'correct' : 'incorrect']: s[correct ? 'correct' : 'incorrect'] + 1 }))
-    if (index + 1 >= MOCK_CARDS.length) {
+    if (index + 1 >= cards.length) {
       setDone(true)
     } else {
       setIndex(i => i + 1)
@@ -34,8 +37,16 @@ export default function QuizPage() {
     }
   }
 
+  const handleRestart = () => {
+    setIndex(0)
+    setInput('')
+    setRevealed(false)
+    setScore({ correct: 0, incorrect: 0 })
+    setDone(false)
+  }
+
   if (done) {
-    const total = MOCK_CARDS.length
+    const total = cards.length
     const pct = Math.round((score.correct / total) * 100)
     return (
       <div className="fade-up" style={{ maxWidth: '480px', margin: '0 auto', paddingTop: '60px', textAlign: 'center' }}>
@@ -54,10 +65,10 @@ export default function QuizPage() {
           <StatBox label="Score" value={`${pct}%`} color="var(--accent)" />
         </div>
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-          <button onClick={() => navigate('/deck/mock-123')} style={btnStyle('outline')}>
+          <button onClick={() => navigate(`/deck/${id}`)} style={{ ...actionBtn('outline'), flex: 1 }}>
             Back to deck
           </button>
-          <button onClick={() => { setIndex(0); setInput(''); setRevealed(false); setScore({ correct: 0, incorrect: 0 }); setDone(false) }} style={btnStyle('accent')}>
+          <button onClick={handleRestart} style={{ ...actionBtn('accent'), flex: 1 }}>
             Retry quiz
           </button>
         </div>
@@ -68,10 +79,18 @@ export default function QuizPage() {
   return (
     <div className="fade-up" style={{ maxWidth: '560px', margin: '0 auto', paddingTop: '32px' }}>
 
+      {/* Back button */}
+      <button
+        onClick={() => navigate(`/deck/${id}`)}
+        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '13px', padding: '0 0 24px', display: 'flex', alignItems: 'center', gap: '6px' }}
+      >
+        ← back to deck
+      </button>
+
       {/* Progress bar */}
       <div style={{ marginBottom: '32px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>
-          <span>{index + 1} / {MOCK_CARDS.length}</span>
+          <span>{index + 1} / {cards.length}</span>
           <span>{score.correct} correct</span>
         </div>
         <div style={{ height: '3px', background: 'var(--border)', borderRadius: '999px' }}>
@@ -123,12 +142,11 @@ export default function QuizPage() {
 
       {/* Reveal / action */}
       {!revealed ? (
-        <button onClick={handleReveal} disabled={!input.trim()} style={btnStyle('accent', !input.trim())}>
+        <button onClick={handleReveal} disabled={!input.trim()} style={actionBtn('accent', !input.trim())}>
           Reveal answer
         </button>
       ) : (
         <>
-          {/* Correct answer */}
           <div style={{
             background: '#0c160a',
             border: '1px solid #1e3d18',
@@ -145,10 +163,10 @@ export default function QuizPage() {
           </p>
 
           <div style={{ display: 'flex', gap: '10px' }}>
-            <button onClick={() => handleNext(false)} style={{ ...btnStyle('outline'), flex: 1, borderColor: '#3d1515', color: 'var(--hard)' }}>
+            <button onClick={() => handleNext(false)} style={{ ...actionBtn('outline'), flex: 1, borderColor: '#3d1515', color: 'var(--hard)' }}>
               ✗ Incorrect
             </button>
-            <button onClick={() => handleNext(true)} style={{ ...btnStyle('outline'), flex: 1, borderColor: '#1a3d12', color: 'var(--easy)' }}>
+            <button onClick={() => handleNext(true)} style={{ ...actionBtn('outline'), flex: 1, borderColor: '#1a3d12', color: 'var(--easy)' }}>
               ✓ Correct
             </button>
           </div>
@@ -175,7 +193,7 @@ function StatBox({ label, value, color }) {
   )
 }
 
-function btnStyle(variant, disabled = false) {
+function actionBtn(variant, disabled = false) {
   const base = {
     width: '100%',
     padding: '13px',
@@ -189,4 +207,9 @@ function btnStyle(variant, disabled = false) {
   }
   if (variant === 'accent') return { ...base, background: disabled ? 'var(--border)' : 'var(--accent)', border: 'none', color: disabled ? 'var(--text-muted)' : 'var(--bg)', opacity: disabled ? 0.6 : 1 }
   return { ...base, background: 'transparent', border: '1px solid var(--border-hi)', color: 'var(--text)' }
+}
+
+const ghostBtn = {
+  background: 'none', border: 'none', color: 'var(--text-muted)',
+  cursor: 'pointer', fontSize: '13px', padding: 0,
 }
