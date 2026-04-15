@@ -1,19 +1,19 @@
 import { useState } from 'react'
 import BadgePill from './BadgePill'
 
-export default function FlashCard({ question, answer, difficulty, topic = 'General', index = 0 }) {
+export default function FlashCard({ question, answer, difficulty, index = 0 }) {
   const [flipped, setFlipped] = useState(false)
 
   return (
     <div
-      className={`flip-card fade-up`}
+      className={`flip-card${flipped ? ' flipped' : ''} fade-up`}
       style={{
         height: '220px',
         animationDelay: `${index * 0.05}s`,
       }}
       onClick={() => setFlipped(f => !f)}
     >
-      <div className={`flip-card-inner ${flipped ? 'flipped' : ''}`}>
+      <div className="flip-card-inner">
 
         {/* Front — Question */}
         <div className="flip-card-front">
@@ -23,18 +23,6 @@ export default function FlashCard({ question, answer, difficulty, topic = 'Gener
             left: '16px',
           }}>
             <BadgePill difficulty={difficulty} />
-          </div>
-
-          <div style={{
-            position: 'absolute',
-            top: '16px',
-            right: '16px',
-            fontSize: '11px',
-            color: 'var(--text-muted)',
-            letterSpacing: '0.06em',
-            textTransform: 'uppercase',
-          }}>
-            {topic}
           </div>
 
           <p style={{
@@ -74,18 +62,6 @@ export default function FlashCard({ question, answer, difficulty, topic = 'Gener
               letterSpacing: '0.06em',
               textTransform: 'uppercase',
             }}>Answer</span>
-          </div>
-
-          <div style={{
-            position: 'absolute',
-            top: '16px',
-            right: '16px',
-            fontSize: '11px',
-            color: 'var(--text-muted)',
-            letterSpacing: '0.06em',
-            textTransform: 'uppercase',
-          }}>
-            {topic}
           </div>
 
           <p style={{

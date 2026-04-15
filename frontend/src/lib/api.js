@@ -9,9 +9,12 @@ async function parseResponse(response) {
 	return response.json()
 }
 
-export async function uploadDocument({ file, deckName = 'Untitled Deck', cardCount = 10 }) {
+export async function uploadDocument({ files, deckName = 'Untitled Deck', cardCount = 10 }) {
 	const formData = new FormData()
-	formData.append('file', file)
+	const fileList = Array.isArray(files) ? files : [files]
+	for (const f of fileList) {
+		formData.append('files', f)
+	}
 	formData.append('deck_name', deckName)
 	formData.append('card_count', String(cardCount))
 

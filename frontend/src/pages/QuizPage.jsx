@@ -6,13 +6,14 @@ import { getDeck } from '../lib/api'
 export default function QuizPage() {
   const { id } = useParams()
   const [index, setIndex] = useState(0)
-  const [input, setInput] = useState('')
+  const [inputs, setInputs] = useState({}) // per-card answer text keyed by card index
   const [revealed, setRevealed] = useState(false)
-  const [score, setScore] = useState({ correct: 0, incorrect: 0 })
   const [done, setDone] = useState(false)
   const [deck, setDeck] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  // answers[cardIndex] = true (correct) | false (incorrect) — index-keyed so prev/skip compose correctly
+  const [answers, setAnswers] = useState({})
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -50,30 +51,50 @@ export default function QuizPage() {
   const card = cards[index]
   const progress = cards.length ? (index / cards.length) * 100 : 0
 
+  // Score derived from answers map — always accurate regardless of navigation order
+  const correct = Object.values(answers).filter(Boolean).length
+  const incorrect = Object.values(answers).filter(v => !v).length
+
   const handleReveal = () => setRevealed(true)
 
-  const handleNext = (correct) => {
-    setScore(s => ({ ...s, [correct ? 'correct' : 'incorrect']: s[correct ? 'correct' : 'incorrect'] + 1 }))
+  const handleNext = (isCorrect) => {
+    setAnswers(a => ({ ...a, [index]: isCorrect }))
     if (index + 1 >= cards.length) {
       setDone(true)
     } else {
       setIndex(i => i + 1)
-      setInput('')
       setRevealed(false)
     }
   }
 
+  // Skip forward without scoring the current card
+  const handleSkip = () => {
+    if (index + 1 >= cards.length) {
+      setDone(true)
+    } else {
+      setIndex(i => i + 1)
+      setRevealed(false)
+    }
+  }
+
+  // Go back — no score change (answers map is index-keyed, stays intact)
+  const handlePrev = () => {
+    if (index === 0) return
+    setIndex(i => i - 1)
+    setRevealed(false)
+  }
+
   const handleRestart = () => {
     setIndex(0)
-    setInput('')
+    setInputs({})
     setRevealed(false)
-    setScore({ correct: 0, incorrect: 0 })
+    setAnswers({})
     setDone(false)
   }
 
   if (done) {
     const total = cards.length
-    const pct = Math.round((score.correct / total) * 100)
+    const pct = Math.round((correct / total) * 100)
     return (
       <div className="fade-up" style={{ maxWidth: '480px', margin: '0 auto', paddingTop: '60px', textAlign: 'center' }}>
         <div style={{ fontSize: '48px', marginBottom: '16px' }}>
@@ -83,11 +104,11 @@ export default function QuizPage() {
           Quiz complete
         </h1>
         <p style={{ color: 'var(--text-muted)', marginBottom: '32px', fontSize: '14px' }}>
-          You got {score.correct} out of {total} correct
+          You got {correct} out of {total} correct
         </p>
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginBottom: '40px' }}>
-          <StatBox label="Correct" value={score.correct} color="var(--easy)" />
-          <StatBox label="Incorrect" value={score.incorrect} color="var(--hard)" />
+          <StatBox label="Correct" value={correct} color="var(--easy)" />
+          <StatBox label="Incorrect" value={incorrect} color="var(--hard)" />
           <StatBox label="Score" value={`${pct}%`} color="var(--accent)" />
         </div>
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
@@ -132,11 +153,47 @@ export default function QuizPage() {
       ) : (
         <>
 
+      {/* Back to deck */}
+      <button
+        onClick={() => navigate(`/deck/${id}`)}
+        style={{
+          background: 'none',
+          border: 'none',
+          color: 'var(--text-muted)',
+          cursor: 'pointer',
+          fontSize: '13px',
+          padding: '0 0 20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+        }}
+      >
+        ← back to deck
+      </button>
+
       {/* Progress bar */}
       <div style={{ marginBottom: '32px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>
-          <span>{index + 1} / {cards.length}</span>
-          <span>{score.correct} correct</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {index > 0 && (
+              <button
+                onClick={handlePrev}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '12px', padding: 0 }}
+              >
+                ← prev
+              </button>
+            )}
+            <span>{index + 1} / {cards.length}</span>
+            {index < cards.length - 1 && (
+              <button
+                onClick={handleSkip}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '12px', padding: 0 }}
+              >
+                skip →
+              </button>
+            )}
+          </div>
+          <span>{correct} correct</span>
         </div>
         <div style={{ height: '3px', background: 'var(--border)', borderRadius: '999px' }}>
           <div style={{ height: '100%', width: `${progress}%`, background: 'var(--accent)', borderRadius: '999px', transition: 'width 0.3s ease' }} />
@@ -164,8 +221,8 @@ export default function QuizPage() {
 
       {/* Answer input */}
       <textarea
-        value={input}
-        onChange={e => setInput(e.target.value)}
+        value={inputs[index] ?? ''}
+        onChange={e => setInputs(prev => ({ ...prev, [index]: e.target.value }))}
         placeholder="Type your answer here..."
         disabled={revealed}
         rows={3}
@@ -190,7 +247,7 @@ export default function QuizPage() {
 
       {/* Reveal / action */}
       {!revealed ? (
-        <button onClick={handleReveal} disabled={!input.trim()} style={actionBtn('accent', !input.trim())}>
+        <button onClick={handleReveal} disabled={!(inputs[index] ?? '').trim()} style={actionBtn('accent', !(inputs[index] ?? '').trim())}>
           Reveal answer
         </button>
       ) : (

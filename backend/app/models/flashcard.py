@@ -16,12 +16,13 @@ class Flashcard(BaseModel):
 	answer: str = Field(..., min_length=1)
 	difficulty: Difficulty
 	topic: str = Field(default="General", min_length=2, max_length=60)
+	source_file: Optional[str] = None
 
 
 class DeckCreateRequest(BaseModel):
 	deck_name: str = Field(..., min_length=2, max_length=120)
 	source_text: str = Field(..., min_length=20)
-	card_count: int = Field(default=10, ge=3, le=30)
+	card_count: int = Field(default=10, ge=3, le=100)
 
 
 class DeckDocument(BaseModel):
