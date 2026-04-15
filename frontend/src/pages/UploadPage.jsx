@@ -7,8 +7,9 @@ export default function UploadPage() {
   const [file, setFile] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [cardCount, setCardCount] = useState(10)
   const inputRef = useRef()
-  
+
   const navigate = useNavigate()
 
   const maxCards = estimateMaxCards(file)
@@ -38,7 +39,7 @@ export default function UploadPage() {
     setError('')
 
     try {
-      const result = await uploadDocument({ file })
+      const result = await uploadDocument({ file, cardCount })
       navigate(`/deck/${result.deck.id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate flashcards.')
@@ -191,4 +192,10 @@ export default function UploadPage() {
 
     </div>
   )
+}
+
+function estimateMaxCards(file) {
+  if (!file) return 0
+  const kb = file.size / 1024
+  return Math.min(50, Math.max(3, Math.round(kb / 2)))
 }
