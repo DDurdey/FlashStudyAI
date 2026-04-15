@@ -1,6 +1,7 @@
-import { useState,  } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import BadgePill from '../components/BadgePill'
+import { getDeck } from '../lib/api'
 
 export default function QuizPage() {
   const { id } = useParams()
@@ -9,20 +10,45 @@ export default function QuizPage() {
   const [revealed, setRevealed] = useState(false)
   const [score, setScore] = useState({ correct: 0, incorrect: 0 })
   const [done, setDone] = useState(false)
+  const [deck, setDeck] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const navigate = useNavigate()
-  const decks = JSON.parse(localStorage.getItem('flashstudy-decks') || '[]')
-  const deck = decks.find(d => d.id === id) || null
 
-  if (!deck) return (
-    <div style={{ textAlign: 'center', paddingTop: '80px', color: 'var(--text-muted)' }}>
-      <p style={{ marginBottom: '16px' }}>Deck not found.</p>
-      <button onClick={() => navigate('/')} style={ghostBtn}>← back to upload</button>
-    </div>
-  )
+  useEffect(() => {
+    let alive = true
 
-  const cards = deck.cards
+    async function loadDeck() {
+      if (!id) {
+        setError('Missing deck id.')
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        setError('')
+        const deckData = await getDeck(id)
+        if (!alive) return
+        setDeck(deckData)
+      } catch (err) {
+        if (!alive) return
+        setError(err instanceof Error ? err.message : 'Failed to load quiz deck.')
+      } finally {
+        if (alive) setLoading(false)
+      }
+    }
+
+    loadDeck()
+
+    return () => {
+      alive = false
+    }
+  }, [id])
+
+  const cards = deck?.flashcards ?? []
   const card = cards[index]
-  const progress = (index / cards.length) * 100
+  const progress = cards.length ? (index / cards.length) * 100 : 0
 
   const handleReveal = () => setRevealed(true)
 
@@ -65,7 +91,7 @@ export default function QuizPage() {
           <StatBox label="Score" value={`${pct}%`} color="var(--accent)" />
         </div>
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-          <button onClick={() => navigate(`/deck/${id}`)} style={{ ...actionBtn('outline'), flex: 1 }}>
+          <button onClick={() => navigate(`/deck/${id}`)} style={btnStyle('outline')}>
             Back to deck
           </button>
           <button onClick={handleRestart} style={{ ...actionBtn('accent'), flex: 1 }}>
@@ -79,13 +105,32 @@ export default function QuizPage() {
   return (
     <div className="fade-up" style={{ maxWidth: '560px', margin: '0 auto', paddingTop: '32px' }}>
 
-      {/* Back button */}
-      <button
-        onClick={() => navigate(`/deck/${id}`)}
-        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '13px', padding: '0 0 24px', display: 'flex', alignItems: 'center', gap: '6px' }}
-      >
-        ← back to deck
-      </button>
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '40px 0' }}>
+          <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: '28px', letterSpacing: '-0.03em', marginBottom: '10px' }}>
+            Loading quiz
+          </h1>
+          <p style={{ color: 'var(--text-muted)' }}>Fetching the deck from the backend...</p>
+        </div>
+      ) : error ? (
+        <div style={{ textAlign: 'center', padding: '40px 0' }}>
+          <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: '28px', letterSpacing: '-0.03em', marginBottom: '10px' }}>
+            Could not load quiz
+          </h1>
+          <p style={{ color: 'var(--hard)', marginBottom: '20px' }}>{error}</p>
+          <button onClick={() => navigate('/')} style={btnStyle('outline')}>
+            Back to upload
+          </button>
+        </div>
+      ) : !cards.length ? (
+        <div style={{ textAlign: 'center', padding: '40px 0' }}>
+          <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: '28px', letterSpacing: '-0.03em', marginBottom: '10px' }}>
+            No cards available
+          </h1>
+          <p style={{ color: 'var(--text-muted)' }}>Generate a deck first.</p>
+        </div>
+      ) : (
+        <>
 
       {/* Progress bar */}
       <div style={{ marginBottom: '32px' }}>
@@ -109,6 +154,9 @@ export default function QuizPage() {
         <div style={{ marginBottom: '20px' }}>
           <BadgePill difficulty={card.difficulty} />
         </div>
+        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          {card.topic}
+        </p>
         <p style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '18px', lineHeight: 1.4, letterSpacing: '-0.01em' }}>
           {card.question}
         </p>
@@ -173,6 +221,9 @@ export default function QuizPage() {
         </>
       )}
 
+        </>
+      )}
+
     </div>
   )
 }
@@ -209,7 +260,16 @@ function actionBtn(variant, disabled = false) {
   return { ...base, background: 'transparent', border: '1px solid var(--border-hi)', color: 'var(--text)' }
 }
 
-const ghostBtn = {
-  background: 'none', border: 'none', color: 'var(--text-muted)',
-  cursor: 'pointer', fontSize: '13px', padding: 0,
+function btnStyle(variant) {
+  const base = {
+    padding: '10px 20px',
+    borderRadius: 'var(--radius)',
+    fontFamily: 'Syne, sans-serif',
+    fontWeight: 600,
+    fontSize: '14px',
+    cursor: 'pointer',
+    transition: 'all 0.15s',
+  }
+  if (variant === 'outline') return { ...base, background: 'transparent', border: '1px solid var(--border-hi)', color: 'var(--text)' }
+  return { ...base, background: 'var(--accent)', border: 'none', color: 'var(--bg)' }
 }

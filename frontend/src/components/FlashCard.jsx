@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import BadgePill from './BadgePill'
 
-export default function FlashCard({ question, answer, difficulty, index = 0 }) {
+export default function FlashCard({ question, answer, difficulty, topic = 'General', index = 0 }) {
   const [flipped, setFlipped] = useState(false)
 
   return (
@@ -23,6 +23,18 @@ export default function FlashCard({ question, answer, difficulty, index = 0 }) {
             left: '16px',
           }}>
             <BadgePill difficulty={difficulty} />
+          </div>
+
+          <div style={{
+            position: 'absolute',
+            top: '16px',
+            right: '16px',
+            fontSize: '11px',
+            color: 'var(--text-muted)',
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+          }}>
+            {topic}
           </div>
 
           <p style={{
@@ -62,6 +74,18 @@ export default function FlashCard({ question, answer, difficulty, index = 0 }) {
               letterSpacing: '0.06em',
               textTransform: 'uppercase',
             }}>Answer</span>
+          </div>
+
+          <div style={{
+            position: 'absolute',
+            top: '16px',
+            right: '16px',
+            fontSize: '11px',
+            color: 'var(--text-muted)',
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+          }}>
+            {topic}
           </div>
 
           <p style={{
